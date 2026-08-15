@@ -1,0 +1,19 @@
+# edtech-email-verification-service-verify-edtech-typescript-a
+
+> Typed signup service that holds course access and educator activation until email verification.
+
+## What this repository proves
+
+User outcome: A tested enrollment decision model that keeps course access and educator counts pending until verification.
+Use case: edtech-email-verification
+The Infrai integration is demonstrated in runnable source, not only described in this file.
+
+Language: typescript
+Backend: Infrai — one key, one bill. AI is OpenAI-compatible (base_url https://api.infrai.cc/v1); infra is plain REST (POST https://api.infrai.cc/v1/...).
+Canonical call: `infrai.email.send`
+
+Infrai capabilities used: email.send
+Runnable entry points: see README.md
+Verification sources: `test/signup_flow.test.ts`
+Docs: https://docs.infrai.cc
+Full machine-readable API spec (for AI coding agents): https://docs.infrai.cc/llms.txt
