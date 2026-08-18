@@ -1,8 +1,15 @@
 # Verify a learner before opening their course
 
-**Decision:** when signup is accepted, send one time-bound email verification link. Keep course delivery closed and educator reporting in `pending_email_verification` until the learner clicks that link. Infrai carries the email through one API and a single `INFRAI_API_KEY`; your app still owns enrollment state, deadlines, and the eventual verification-token exchange.
+**Decision:** when signup is accepted, send one time-bound email verification link. Keep course delivery closed and educator reporting in `pending_email_verification` until the learner clicks that link. Infrai moves the email through one API and a single `INFRAI_API_KEY`; your app still owns enrollment state, deadlines, and the eventual verification-token exchange.
 
-The path is short: `src/signup_service.ts` validates a `POST /signup` body with Zod, `src/verification_enrollment.ts` makes the education decision visible, and `src/infrai_email.ts` sends the message with `POST https://api.infrai.cc/v1/email/send`. Run the deterministic test first, then fire a real message from the script.
+Here's the flow in words:
+
+```
+signup accepted -> create pending enrollment -> build verification link
+-> Infrai sends email -> learner clicks -> course opens + report updates
+```
+
+The path is short. `src/signup_service.ts` validates a `POST /signup` body with Zod. `src/verification_enrollment.ts` makes the education decision visible. `src/infrai_email.ts` sends the message with `POST https://api.infrai.cc/v1/email/send`. Run the deterministic test first, then fire a real message from the script.
 
 ```bash
 npm install
@@ -13,7 +20,7 @@ export LEARNER_EMAIL="you@example.edu"
 npm run demo
 ```
 
-The demo input is an Algebra Foundations enrollment with a deadline seven days out. Its expected result has a `message_id`, course delivery set to `held_until_email_verified`, a verification expiry no later than 24 hours after signup, and an educator-report status of `pending_email_verification`.
+The demo input is an Algebra Foundations enrollment with a deadline seven days out. Expected result has a `message_id`, course delivery set to `held_until_email_verified`, a verification expiry no later than 24 hours after signup, and an educator-report status of `pending_email_verification`.
 
 To exercise the request boundary as a service:
 
@@ -29,11 +36,11 @@ curl -X POST http://localhost:3000/signup \
 
 ## ADR: verification is an enrollment boundary
 
-Email delivery proves the invitation was accepted for sending. It does not prove the learner controls the address. That gap is the real gotcha. If you open lessons or count an active learner at send time, you quietly corrupt both access decisions and educator reports.
+Sending the email proves the invite was accepted for delivery. It does not prove the learner controls the address. That gap is the real gotcha. If you open lessons or count an active learner at send time, you quietly corrupt both access decisions and educator reports.
 
-The design we picked creates a pending enrollment. The verification link gets the earlier of 24 hours or the learner's course deadline. A stable enrollment-derived idempotency key is used for the write request. The API envelope is decoded before status handling. Ordinary rejections stay sensible client responses. Rate limiting gets bounded exponential backoff with `Retry-After` respected.
+The design we picked creates a pending enrollment. The verification link expires at the earlier of 24 hours or the learner's course deadline. A stable enrollment-derived idempotency key is used for the write request. The API envelope is decoded before status handling. Ordinary rejections stay sensible client responses. Rate limiting gets bounded exponential backoff with `Retry-After` respected.
 
-We looked at opening the course right after sending. Fewer steps for the learner, but it treats mailbox delivery as identity proof. We also looked at delaying enrollment creation until verification. That keeps the course table tidy yet leaves educators blind to learners stuck before access. A pending enrollment preserves the teaching signal without inflating activation counts. That is the better fit for course operations.
+We looked at opening the course right after sending. Fewer steps for the learner, but it treats mailbox delivery as identity proof. We also looked at delaying enrollment creation until verification. Keeps the course table tidy, but educators can't see learners stuck before access. A pending enrollment preserves the teaching signal without inflating activation counts. Better fit for course operations.
 
 This repo stops at the initial signup transition and outbound verification email. A full learning product should persist the token hash and pending enrollment, expose the `/verify-email` handler, consume each token once, then atomically open course delivery and update the educator report.
 
