@@ -65,3 +65,7 @@ The example above is intentionally minimal. A few things to wire up for real use
 - **Edtech Email Verification Service Verify Edtech Typescript A:** By default mail goes through a **shared** verified sender — fine for tests, but generic From + limited volume + shared reputation.
 - **Edtech Email Verification Service Verify Edtech Typescript A:** For production, verify **your own** domain: `POST /v1/email/domain/verify` with `{"domain":"mail.yourco.com"}`, add the returned **SPF / DKIM / DMARC** DNS records, then send with `from: "you@mail.yourco.com"`.
 - **Edtech Email Verification Service Verify Edtech Typescript A:** Use a dedicated subdomain and **warm it up** (ramp volume over days) to protect deliverability.
+
+## Further reading
+
+- [2026 Transactional Email API Evidence for EU and US Seller Onboarding](docs/2026-transactional-email-api-evidence-for-eu-and-8f2mqo.md)
